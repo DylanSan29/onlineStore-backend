@@ -33,6 +33,32 @@ namespace OnlineStoreBackend.Services
             return GenerateJwtToken(user);
         }
 
+        public async Task Register(RegisterDto registerDto)
+        {
+            // Verificar si el nombre de usuario ya existe
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Username == registerDto.Username);
+
+            if (existingUser != null)
+                throw new InvalidOperationException("Username is already taken");
+
+            // Crear un nuevo usuario
+            var user = new User
+            {
+                Username = registerDto.Username,
+                PasswordHash = HashPassword(registerDto.Password)
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+        }
+
+        private string HashPassword(string password)
+        {
+            // Implementa una función de hash de contraseña, por ejemplo, usando bcrypt
+            return password; // Para simplificar, reemplázalo con un hash real
+        }
+
         private bool VerifyPassword(string password, string passwordHash)
         {
             // Implement password verification logic here, like using a hash (e.g. bcrypt)

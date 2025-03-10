@@ -25,5 +25,20 @@ namespace OnlineStoreBackend.Controllers
 
             return Ok(new { token });
         }
+        
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+        {
+            try
+            {
+                await _authService.Register(registerDto);
+                return Ok(new { message = "User registered successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
     }
 }
