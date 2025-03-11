@@ -55,14 +55,12 @@ namespace OnlineStoreBackend.Services
 
         private string HashPassword(string password)
         {
-            // Implementa una función de hash de contraseña, por ejemplo, usando bcrypt
-            return password; // Para simplificar, reemplázalo con un hash real
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
         private bool VerifyPassword(string password, string passwordHash)
         {
-            // Implement password verification logic here, like using a hash (e.g. bcrypt)
-            return password == passwordHash;  // For simplicity, replace with actual hash verification
+            return BCrypt.Net.BCrypt.Verify(password, passwordHash);
         }
 
         private string GenerateJwtToken(User user)

@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "is6TxUcKXew=",
+  "dgSpecHash": "Xa3Oh1BqsSw=",
   "success": true,
   "projectFilePath": "C:\\Users\\EQUIPO\\Documents\\OnlineStore-backend\\OnlineStoreBackend\\OnlineStoreBackend.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\EQUIPO\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\EQUIPO\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\EQUIPO\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.0\\microsoft.aspnetcore.authentication.jwtbearer.8.0.0.nupkg.sha512",
     "C:\\Users\\EQUIPO\\.nuget\\packages\\microsoft.aspnetcore.openapi\\8.0.13\\microsoft.aspnetcore.openapi.8.0.13.nupkg.sha512",

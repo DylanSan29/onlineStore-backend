@@ -119,3 +119,4 @@ C:\Users\EQUIPO\Documents\OnlineStore-backend\OnlineStoreBackend\obj\Debug\net8.
 C:\Users\EQUIPO\Documents\OnlineStore-backend\OnlineStoreBackend\obj\Debug\net8.0\OnlineStoreBackend.pdb
 C:\Users\EQUIPO\Documents\OnlineStore-backend\OnlineStoreBackend\obj\Debug\net8.0\OnlineStoreBackend.genruntimeconfig.cache
 C:\Users\EQUIPO\Documents\OnlineStore-backend\OnlineStoreBackend\obj\Debug\net8.0\ref\OnlineStoreBackend.dll
+C:\Users\EQUIPO\Documents\OnlineStore-backend\OnlineStoreBackend\bin\Debug\net8.0\BCrypt.Net-Next.dll
