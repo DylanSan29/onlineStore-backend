@@ -18,14 +18,20 @@ namespace OnlineStoreBackend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
-            var token = await _authService.Login(loginDto);
+            var (token, user) = await _authService.Login(loginDto);  // Deconstruct the tuple
 
             if (string.IsNullOrEmpty(token))
                 return Unauthorized(new { message = "Invalid credentials" });
 
-            return Ok(new { token });
+            return Ok(new
+            {
+                token,
+                username = user.Username,
+                role = user.Role
+            });
         }
-        
+
+
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {

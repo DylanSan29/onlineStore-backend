@@ -1,11 +1,27 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using System.Text;
 using OnlineStoreBackend.Services;
 using OnlineStoreBackend.Helpers;
 using OnlineStoreBackend.Data;
-using Microsoft.EntityFrameworkCore;
+using OnlineStoreBackend.Middleware;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Add CORS policy to allow localhost:3000
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalhost",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000") // Allow your React app
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -32,25 +48,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddDbContext<OnlineStoreContext>(options =>
-options.UseMySql(
-    builder.Configuration.GetConnectionString("DefaultConnection"),
-    new MySqlServerVersion(new Version(8, 0, 34))
-)
-);
-
 // Add services for the application
 builder.Services.AddScoped<AuthService>();
 
 // Register the database context
-builder.Services.AddDbContext<OnlineStoreContext>();
+builder.Services.AddDbContext<OnlineStoreContext>(options =>
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        new MySqlServerVersion(new Version(8, 0, 34))
+    )
+);
+
+// Register ApiKeyMiddleware - no need to manually inject
+// It will be added to the middleware pipeline in the next step
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Enable CORS for the frontend
+app.UseCors("AllowLocalhost");
+
+// Use the ApiKeyMiddleware to check for valid API_KEY
+app.UseMiddleware<ApiKeyMiddleware>(); // Apply the middleware here
+
+// Enable Authentication and Authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Map controllers to handle requests
 app.MapControllers();
 
+// Run the application
 app.Run();

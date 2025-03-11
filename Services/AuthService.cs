@@ -22,7 +22,7 @@ namespace OnlineStoreBackend.Services
             _context = context;
         }
 
-        public async Task<string> Login(LoginDto loginDto)
+        public async Task<(string Token, User User)> Login(LoginDto loginDto)
         {
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Username == loginDto.Username);
@@ -30,7 +30,9 @@ namespace OnlineStoreBackend.Services
             if (user == null || !VerifyPassword(loginDto.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid username or password");
 
-            return GenerateJwtToken(user);
+            var token = GenerateJwtToken(user);
+
+            return (token, user);
         }
 
         public async Task Register(RegisterDto registerDto)
@@ -42,11 +44,12 @@ namespace OnlineStoreBackend.Services
             if (existingUser != null)
                 throw new InvalidOperationException("Username is already taken");
 
-            // Crear un nuevo usuario
+            // Crear un nuevo usuario con el rol por defecto 'client'
             var user = new User
             {
                 Username = registerDto.Username,
-                PasswordHash = HashPassword(registerDto.Password)
+                PasswordHash = HashPassword(registerDto.Password),
+                Role = "client" // Set default role as 'client'
             };
 
             _context.Users.Add(user);
