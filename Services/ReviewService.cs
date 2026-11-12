@@ -7,6 +7,33 @@ namespace OnlineStoreBackend.Services;
 
 public sealed class ReviewService(OnlineStoreContext context)
 {
+    public async Task<IReadOnlyList<ReviewResponse>> GetPendingAsync() =>
+        await context.Reviews.AsNoTracking().Where(review => !review.IsApproved)
+            .OrderBy(review => review.CreatedAt).Select(review => new ReviewResponse
+            {
+                Id = review.Id, ProductId = review.ProductId, UserId = review.UserId,
+                Rating = review.Rating, Comment = review.Comment, CreatedAt = review.CreatedAt
+            }).ToListAsync();
+
+    public async Task<bool> ApproveAsync(int reviewId)
+    {
+        var review = await context.Reviews.FindAsync(reviewId);
+        if (review is null) return false;
+        review.IsApproved = true;
+        review.UpdatedAt = DateTime.UtcNow;
+        await context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(int reviewId)
+    {
+        var review = await context.Reviews.FindAsync(reviewId);
+        if (review is null) return false;
+        context.Reviews.Remove(review);
+        await context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<IReadOnlyList<ReviewResponse>> GetApprovedAsync(int productId) =>
         await context.Reviews.AsNoTracking()
             .Where(review => review.ProductId == productId && review.IsApproved)
