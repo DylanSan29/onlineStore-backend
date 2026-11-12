@@ -20,7 +20,7 @@ public partial class AddPayments : Migration
                 OrderId = table.Column<int>(type: "int", nullable: false),
                 UserId = table.Column<int>(type: "int", nullable: false),
                 Provider = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                ProviderPaymentId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                ProviderPaymentId = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                 Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                 Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                 Currency = table.Column<string>(type: "nvarchar(max)", nullable: false),
