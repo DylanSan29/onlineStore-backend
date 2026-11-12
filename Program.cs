@@ -86,6 +86,7 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<AddressService>();
+builder.Services.AddScoped<WishlistService>();
 
 // Register the database context
 builder.Services.AddDbContext<OnlineStoreContext>(options =>
