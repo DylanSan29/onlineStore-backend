@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using OnlineStoreBackend.DTOs;
 using OnlineStoreBackend.Services;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace OnlineStoreBackend.Controllers
 {
@@ -18,6 +19,7 @@ namespace OnlineStoreBackend.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("auth")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
@@ -40,6 +42,7 @@ namespace OnlineStoreBackend.Controllers
         }
 
         [HttpPost("refresh")]
+        [EnableRateLimiting("auth")]
         [AllowAnonymous]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
         {
@@ -57,12 +60,13 @@ namespace OnlineStoreBackend.Controllers
         [Authorize]
         public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
         {
-            await _authService.RevokeRefreshTokenAsync(request.RefreshToken);
+            await _authService.RevokeRefreshTokenAsync(CurrentUserId(), request.RefreshToken);
             return NoContent();
         }
 
 
         [HttpPost("register")]
+        [EnableRateLimiting("auth")]
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
@@ -85,6 +89,8 @@ namespace OnlineStoreBackend.Controllers
             username = User.FindFirstValue(ClaimTypes.Name),
             role = User.FindFirstValue(ClaimTypes.Role) ?? "client"
         });
+
+        private int CurrentUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     }
 }

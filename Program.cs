@@ -9,6 +9,7 @@ using OnlineStoreBackend.Helpers;
 using OnlineStoreBackend.Data;
 using OnlineStoreBackend.Middleware;
 using Microsoft.OpenApi.Models;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -78,6 +79,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+});
 
 // Add services for the application
 builder.Services.AddScoped<AuthService>();
@@ -102,12 +115,15 @@ builder.Services.AddDbContext<OnlineStoreContext>(options =>
 
 var app = builder.Build();
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 // Enable CORS for the frontend
 app.UseCors("AllowLocalhost");
 
 // Enable Authentication and Authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.UseSwagger();
 app.UseSwaggerUI();
