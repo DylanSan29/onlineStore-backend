@@ -49,11 +49,11 @@ namespace OnlineStoreBackend.Services
             return replacement;
         }
 
-        public async Task RevokeRefreshTokenAsync(string refreshToken)
+        public async Task RevokeRefreshTokenAsync(int userId, string refreshToken)
         {
             var tokenHash = HashRefreshToken(refreshToken);
             var token = await _context.RefreshTokens
-                .SingleOrDefaultAsync(item => item.TokenHash == tokenHash && item.RevokedAt == null);
+                .SingleOrDefaultAsync(item => item.UserId == userId && item.TokenHash == tokenHash && item.RevokedAt == null);
 
             if (token != null)
             {
