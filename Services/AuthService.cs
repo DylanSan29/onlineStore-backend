@@ -37,19 +37,17 @@ namespace OnlineStoreBackend.Services
 
         public async Task Register(RegisterDto registerDto)
         {
-            // Verificar si el nombre de usuario ya existe
             var existingUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Username == registerDto.Username);
 
             if (existingUser != null)
                 throw new InvalidOperationException("Username is already taken");
 
-            // Crear un nuevo usuario con el rol por defecto 'client'
             var user = new User
             {
                 Username = registerDto.Username,
                 PasswordHash = HashPassword(registerDto.Password),
-                Role = "client" // Set default role as 'client'
+                Role = "client"
             };
 
             _context.Users.Add(user);
@@ -71,7 +69,8 @@ namespace OnlineStoreBackend.Services
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username)
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
             var secretKey = _configuration["Jwt:SecretKey"];
@@ -87,7 +86,7 @@ namespace OnlineStoreBackend.Services
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddDays(1),
+                expires: DateTime.UtcNow.AddHours(2),
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

@@ -8,6 +8,7 @@ using OnlineStoreBackend.Services;
 using OnlineStoreBackend.Helpers;
 using OnlineStoreBackend.Data;
 using OnlineStoreBackend.Middleware;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,35 @@ builder.Services.AddCors(options =>
 
 // Add services to the container
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "OnlineStore API",
+        Version = "v1",
+        Description = "Product catalog and authentication API for the OnlineStore application."
+    });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter a JWT token using the format: Bearer {token}"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Setup JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -47,15 +77,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
         };
     });
+builder.Services.AddAuthorization();
 
 // Add services for the application
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<AddressService>();
 
 // Register the database context
 builder.Services.AddDbContext<OnlineStoreContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 34))
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
 
@@ -67,12 +102,12 @@ var app = builder.Build();
 // Enable CORS for the frontend
 app.UseCors("AllowLocalhost");
 
-// Use the ApiKeyMiddleware to check for valid API_KEY
-app.UseMiddleware<ApiKeyMiddleware>(); // Apply the middleware here
-
 // Enable Authentication and Authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 // Map controllers to handle requests
 app.MapControllers();
