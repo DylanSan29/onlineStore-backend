@@ -18,7 +18,7 @@ public sealed class CouponsController(CouponService coupons) : ControllerBase
     [Authorize(Roles = "admin")]
     public async Task<IActionResult> Create(CouponRequest request)
     {
-        try { return Ok(await coupons.CreateAsync(request)); }
+        try { return Ok(await coupons.CreateAsync(request, CurrentUserId())); }
         catch (InvalidOperationException exception) { return BadRequest(new { message = exception.Message }); }
     }
 

@@ -20,7 +20,7 @@ public sealed class AdminUsersController(AdminUserService users) : ControllerBas
     [HttpPatch("{id:int}/role")]
     public async Task<IActionResult> UpdateRole(int id, UpdateUserRoleRequest request)
     {
-        try { return await users.UpdateRoleAsync(id, request.Role) ? NoContent() : NotFound(); }
+        try { return await users.UpdateRoleAsync(CurrentUserId(), id, request.Role) ? NoContent() : NotFound(); }
         catch (InvalidOperationException exception) { return BadRequest(new { message = exception.Message }); }
     }
 

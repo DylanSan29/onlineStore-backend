@@ -5,12 +5,12 @@ using OnlineStoreBackend.Models;
 
 namespace OnlineStoreBackend.Services;
 
-public sealed class CouponService(OnlineStoreContext context)
+public sealed class CouponService(OnlineStoreContext context, AuditLogService? audit = null)
 {
     public async Task<IReadOnlyList<Coupon>> GetAllAsync() =>
         await context.Coupons.AsNoTracking().OrderByDescending(coupon => coupon.CreatedAt).ToListAsync();
 
-    public async Task<Coupon> CreateAsync(CouponRequest request)
+    public async Task<Coupon> CreateAsync(CouponRequest request, int? actorId = null)
     {
         ValidateRequest(request);
         var code = NormalizeCode(request.Code);
@@ -24,6 +24,7 @@ public sealed class CouponService(OnlineStoreContext context)
         };
         context.Coupons.Add(coupon);
         await context.SaveChangesAsync();
+        if (audit is not null && actorId.HasValue) await audit.RecordAsync(actorId, "Create", "Coupon", coupon.Id, $"Coupon {coupon.Code} created", null);
         return coupon;
     }
 

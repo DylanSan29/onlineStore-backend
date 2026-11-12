@@ -5,7 +5,7 @@ using OnlineStoreBackend.Models;
 
 namespace OnlineStoreBackend.Services;
 
-public sealed class InventoryService(OnlineStoreContext context)
+public sealed class InventoryService(OnlineStoreContext context, AuditLogService? audit = null)
 {
     public async Task<IReadOnlyList<InventoryItemResponse>> GetAllAsync(int threshold)
     {
@@ -48,6 +48,7 @@ public sealed class InventoryService(OnlineStoreContext context)
             MovementType = request.MovementType.Trim(), Reason = request.Reason?.Trim(), CreatedByUserId = userId
         });
         await context.SaveChangesAsync();
+        if (audit is not null) await audit.RecordAsync(userId, "Adjust", "Inventory", request.ProductId, $"Quantity changed by {request.QuantityChanged}", null);
         return ToItem(inventory, inventory.ReorderLevel);
     }
 
