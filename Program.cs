@@ -104,6 +104,7 @@ builder.Services.AddScoped<ReviewService>();
 builder.Services.AddScoped<ProductImageService>();
 builder.Services.AddScoped<CouponService>();
 builder.Services.AddScoped<ShipmentService>();
+builder.Services.AddScoped<PaymentService>();
 
 // Register the database context
 builder.Services.AddDbContext<OnlineStoreContext>(options =>
