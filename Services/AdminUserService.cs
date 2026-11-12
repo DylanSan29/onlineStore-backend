@@ -4,7 +4,7 @@ using OnlineStoreBackend.DTOs;
 
 namespace OnlineStoreBackend.Services;
 
-public sealed class AdminUserService(OnlineStoreContext context)
+public sealed class AdminUserService(OnlineStoreContext context, AuditLogService? audit = null)
 {
     public async Task<IReadOnlyList<UserAdminResponse>> GetAsync() =>
         await context.Users.AsNoTracking().OrderBy(user => user.Username).Select(user => new UserAdminResponse
@@ -18,13 +18,14 @@ public sealed class AdminUserService(OnlineStoreContext context)
             Id = user.Id, Username = user.Username, Role = user.Role, IsActive = user.IsActive
         }).SingleOrDefaultAsync();
 
-    public async Task<bool> UpdateRoleAsync(int id, string role)
+    public async Task<bool> UpdateRoleAsync(int actorId, int id, string role)
     {
         if (role is not ("admin" or "client")) throw new InvalidOperationException("Role must be admin or client.");
         var user = await context.Users.FindAsync(id);
         if (user is null) return false;
         user.Role = role;
         await context.SaveChangesAsync();
+        if (audit is not null) await audit.RecordAsync(actorId, "UpdateRole", "User", id, $"Role changed to {role}", null);
         return true;
     }
 
@@ -35,6 +36,7 @@ public sealed class AdminUserService(OnlineStoreContext context)
         if (user is null) return false;
         user.IsActive = isActive;
         await context.SaveChangesAsync();
+        if (audit is not null) await audit.RecordAsync(actorId, "UpdateStatus", "User", id, $"Active: {isActive}", null);
         return true;
     }
 

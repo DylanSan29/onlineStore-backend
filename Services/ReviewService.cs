@@ -5,7 +5,7 @@ using OnlineStoreBackend.Models;
 
 namespace OnlineStoreBackend.Services;
 
-public sealed class ReviewService(OnlineStoreContext context)
+public sealed class ReviewService(OnlineStoreContext context, AuditLogService? audit = null)
 {
     public async Task<IReadOnlyList<ReviewResponse>> GetPendingAsync() =>
         await context.Reviews.AsNoTracking().Where(review => !review.IsApproved)
@@ -15,22 +15,24 @@ public sealed class ReviewService(OnlineStoreContext context)
                 Rating = review.Rating, Comment = review.Comment, CreatedAt = review.CreatedAt
             }).ToListAsync();
 
-    public async Task<bool> ApproveAsync(int reviewId)
+    public async Task<bool> ApproveAsync(int actorId, int reviewId)
     {
         var review = await context.Reviews.FindAsync(reviewId);
         if (review is null) return false;
         review.IsApproved = true;
         review.UpdatedAt = DateTime.UtcNow;
         await context.SaveChangesAsync();
+        if (audit is not null) await audit.RecordAsync(actorId, "Approve", "Review", reviewId, "Review approved", null);
         return true;
     }
 
-    public async Task<bool> DeleteAsync(int reviewId)
+    public async Task<bool> DeleteAsync(int actorId, int reviewId)
     {
         var review = await context.Reviews.FindAsync(reviewId);
         if (review is null) return false;
         context.Reviews.Remove(review);
         await context.SaveChangesAsync();
+        if (audit is not null) await audit.RecordAsync(actorId, "Delete", "Review", reviewId, "Review deleted", null);
         return true;
     }
 
