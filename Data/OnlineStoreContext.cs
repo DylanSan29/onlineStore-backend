@@ -91,6 +91,7 @@ namespace OnlineStoreBackend.Data
             modelBuilder.Entity<Payment>(entity =>
             {
                 entity.Property(payment => payment.Amount).HasPrecision(18, 2);
+                entity.Property(payment => payment.ProviderPaymentId).HasMaxLength(200);
                 entity.HasIndex(payment => payment.IdempotencyKey).IsUnique();
                 entity.HasIndex(payment => payment.ProviderPaymentId).IsUnique().HasFilter("[ProviderPaymentId] IS NOT NULL");
                 entity.HasOne<Order>().WithMany().HasForeignKey(payment => payment.OrderId).OnDelete(DeleteBehavior.Restrict);
