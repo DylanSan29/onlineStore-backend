@@ -29,6 +29,7 @@ namespace OnlineStoreBackend.Data
         public DbSet<CouponUsage> CouponUsages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Payment> Payments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -87,6 +88,14 @@ namespace OnlineStoreBackend.Data
             modelBuilder.Entity<CouponUsage>().HasIndex(usage => new { usage.CouponId, usage.UserId, usage.OrderId }).IsUnique();
             modelBuilder.Entity<Notification>().HasIndex(notification => new { notification.UserId, notification.IsRead });
             modelBuilder.Entity<AuditLog>().HasIndex(log => log.CreatedAt);
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                entity.Property(payment => payment.Amount).HasPrecision(18, 2);
+                entity.HasIndex(payment => payment.IdempotencyKey).IsUnique();
+                entity.HasIndex(payment => payment.ProviderPaymentId).IsUnique().HasFilter("[ProviderPaymentId] IS NOT NULL");
+                entity.HasOne<Order>().WithMany().HasForeignKey(payment => payment.OrderId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<User>().WithMany().HasForeignKey(payment => payment.UserId).OnDelete(DeleteBehavior.Restrict);
+            });
 
             modelBuilder.Entity<Shipment>().HasOne<Order>().WithOne().HasForeignKey<Shipment>(shipment => shipment.OrderId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<ProductImage>().HasOne<Product>().WithMany().HasForeignKey(image => image.ProductId).OnDelete(DeleteBehavior.Cascade);

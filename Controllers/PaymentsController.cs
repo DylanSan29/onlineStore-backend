@@ -16,7 +16,7 @@ public sealed class PaymentsController(PaymentService payments) : ControllerBase
     {
         try
         {
-            var result = await payments.CreateCheckoutAsync(CurrentUserId(), orderId);
+            var result = await payments.CreateCheckoutAsync(CurrentUserId(), orderId, Request.Headers["X-Idempotency-Key"].FirstOrDefault());
             return result is null ? NotFound() : Ok(result);
         }
         catch (InvalidOperationException exception) { return BadRequest(new { message = exception.Message }); }
@@ -32,9 +32,10 @@ public sealed class PaymentsController(PaymentService payments) : ControllerBase
 
     [HttpPost("webhooks/mercadopago")]
     [AllowAnonymous]
-    public IActionResult MercadoPagoWebhook(PaymentWebhookRequest request)
+    public async Task<IActionResult> MercadoPagoWebhook(PaymentWebhookRequest request, [FromHeader(Name = "X-Webhook-Signature")] string? signature)
     {
-        return Accepted(new { received = true, processed = false, message = "Webhook verification and processing are pending provider integration." });
+        var processed = await payments.ProcessWebhookAsync(request, signature);
+        return processed ? Ok(new { received = true, processed = true }) : Unauthorized(new { message = "Invalid webhook signature or payment." });
     }
 
     private int CurrentUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
