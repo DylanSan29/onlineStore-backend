@@ -8,6 +8,7 @@ public sealed class Order
     public decimal Subtotal { get; set; }
     public decimal ShippingCost { get; set; }
     public decimal Tax { get; set; }
+    public decimal Discount { get; set; }
     public decimal Total { get; set; }
     public required string ShippingFullName { get; set; }
     public required string ShippingAddress { get; set; }

@@ -48,6 +48,7 @@ namespace OnlineStoreBackend.Data
                 entity.Property(order => order.Subtotal).HasPrecision(18, 2);
                 entity.Property(order => order.ShippingCost).HasPrecision(18, 2);
                 entity.Property(order => order.Tax).HasPrecision(18, 2);
+                entity.Property(order => order.Discount).HasPrecision(18, 2);
                 entity.Property(order => order.Total).HasPrecision(18, 2);
                 entity.HasMany(order => order.Items)
                     .WithOne(item => item.Order)

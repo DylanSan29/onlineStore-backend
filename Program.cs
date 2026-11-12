@@ -102,6 +102,7 @@ builder.Services.AddScoped<AddressService>();
 builder.Services.AddScoped<WishlistService>();
 builder.Services.AddScoped<ReviewService>();
 builder.Services.AddScoped<ProductImageService>();
+builder.Services.AddScoped<CouponService>();
 
 // Register the database context
 builder.Services.AddDbContext<OnlineStoreContext>(options =>

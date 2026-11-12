@@ -6,6 +6,7 @@ public sealed class CreateOrderRequest
 {
     [Required, MinLength(1)] public required List<CreateOrderItemRequest> Items { get; set; }
     [Required] public required ShippingAddressRequest ShippingAddress { get; set; }
+    [StringLength(40)] public string? CouponCode { get; set; }
 }
 
 public sealed class CreateOrderItemRequest
@@ -35,6 +36,7 @@ public sealed class OrderResponse
     public decimal Subtotal { get; init; }
     public decimal ShippingCost { get; init; }
     public decimal Tax { get; init; }
+    public decimal Discount { get; init; }
     public decimal Total { get; init; }
     public required ShippingAddressResponse ShippingAddress { get; init; }
     public DateTime CreatedAt { get; init; }

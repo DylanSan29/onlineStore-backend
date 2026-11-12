@@ -5,7 +5,7 @@ using OnlineStoreBackend.Models;
 
 namespace OnlineStoreBackend.Services;
 
-public sealed class OrderService(OnlineStoreContext context)
+public sealed class OrderService(OnlineStoreContext context, CouponService? couponService = null)
 {
     private static readonly string[] AllowedStatuses = ["Pending", "Paid", "Processing", "Shipped", "Delivered", "Cancelled", "Refunded"];
 
@@ -20,10 +20,18 @@ public sealed class OrderService(OnlineStoreContext context)
 
         var items = BuildItems(requestedItems, products);
         var subtotal = items.Sum(item => item.LineTotal);
+        var discount = 0m;
+        Coupon? coupon = null;
+        if (!string.IsNullOrWhiteSpace(request.CouponCode))
+        {
+            var couponResult = await (couponService ?? new CouponService(context)).GetDiscountAsync(userId, request.CouponCode, subtotal);
+            coupon = couponResult.Coupon;
+            discount = couponResult.Discount;
+        }
         var order = new Order
         {
             UserId = userId, Status = "Pending", Subtotal = subtotal, ShippingCost = 0,
-            Tax = 0, Total = subtotal, ShippingFullName = request.ShippingAddress.FullName.Trim(),
+            Tax = 0, Discount = discount, Total = subtotal - discount, ShippingFullName = request.ShippingAddress.FullName.Trim(),
             ShippingAddress = request.ShippingAddress.Address.Trim(), ShippingCity = request.ShippingAddress.City.Trim(),
             ShippingPostalCode = request.ShippingAddress.PostalCode?.Trim(), Items = items
         };
@@ -38,6 +46,11 @@ public sealed class OrderService(OnlineStoreContext context)
 
         context.Orders.Add(order);
         await context.SaveChangesAsync();
+        if (coupon is not null)
+        {
+            context.CouponUsages.Add(new CouponUsage { CouponId = coupon.Id, UserId = userId, OrderId = order.Id });
+            await context.SaveChangesAsync();
+        }
         return ToResponse(order);
     }
 
@@ -108,7 +121,7 @@ public sealed class OrderService(OnlineStoreContext context)
     private static OrderResponse ToResponse(Order order) => new()
     {
         Id = order.Id, UserId = order.UserId, Status = order.Status, Subtotal = order.Subtotal,
-        ShippingCost = order.ShippingCost, Tax = order.Tax, Total = order.Total, CreatedAt = order.CreatedAt,
+        ShippingCost = order.ShippingCost, Tax = order.Tax, Discount = order.Discount, Total = order.Total, CreatedAt = order.CreatedAt,
         ShippingAddress = new ShippingAddressResponse
         {
             FullName = order.ShippingFullName, Address = order.ShippingAddress,
