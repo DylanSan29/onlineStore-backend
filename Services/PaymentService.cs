@@ -7,7 +7,7 @@ using OnlineStoreBackend.Models;
 
 namespace OnlineStoreBackend.Services;
 
-public sealed class PaymentService(OnlineStoreContext context, IConfiguration configuration)
+public sealed class PaymentService(OnlineStoreContext context, IConfiguration configuration, NotificationService? notifications = null)
 {
     public async Task<PaymentCheckoutResponse?> CreateCheckoutAsync(int userId, int orderId, string? idempotencyKey)
     {
@@ -63,6 +63,11 @@ public sealed class PaymentService(OnlineStoreContext context, IConfiguration co
             if (order is not null) { order.Status = "Paid"; order.UpdatedAt = DateTime.UtcNow; }
         }
         await context.SaveChangesAsync();
+        if (notifications is not null)
+            await notifications.CreateAsync(payment.UserId, new CreateNotificationRequest
+            {
+                Type = "Payment", Title = "Payment status updated", Message = $"Payment #{payment.Id} status: {payment.Status}."
+            });
         return true;
     }
 
