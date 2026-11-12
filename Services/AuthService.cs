@@ -5,6 +5,7 @@ using OnlineStoreBackend.Models;
 using OnlineStoreBackend.Helpers;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using OnlineStoreBackend.Data;
@@ -22,7 +23,7 @@ namespace OnlineStoreBackend.Services
             _context = context;
         }
 
-        public async Task<(string Token, User User)> Login(LoginDto loginDto)
+        public async Task<(string Token, string RefreshToken, User User, DateTime AccessTokenExpiresAt)> Login(LoginDto loginDto)
         {
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Username == loginDto.Username);
@@ -30,9 +31,35 @@ namespace OnlineStoreBackend.Services
             if (user == null || !VerifyPassword(loginDto.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid username or password");
 
-            var token = GenerateJwtToken(user);
+            var tokenPair = CreateTokenPair(user);
+            await _context.SaveChangesAsync();
 
-            return (token, user);
+            return (tokenPair.AccessToken, tokenPair.RefreshToken, user, tokenPair.AccessTokenExpiresAt);
+        }
+
+        public async Task<AuthTokenResponse> RefreshAsync(string refreshToken)
+        {
+            var token = await FindActiveRefreshTokenAsync(refreshToken);
+            var user = await _context.Users.FindAsync(token.UserId)
+                ?? throw new UnauthorizedAccessException("Refresh token is invalid.");
+
+            token.RevokedAt = DateTime.UtcNow;
+            var replacement = CreateTokenPair(user);
+            await _context.SaveChangesAsync();
+            return replacement;
+        }
+
+        public async Task RevokeRefreshTokenAsync(string refreshToken)
+        {
+            var tokenHash = HashRefreshToken(refreshToken);
+            var token = await _context.RefreshTokens
+                .SingleOrDefaultAsync(item => item.TokenHash == tokenHash && item.RevokedAt == null);
+
+            if (token != null)
+            {
+                token.RevokedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task Register(RegisterDto registerDto)
@@ -64,7 +91,7 @@ namespace OnlineStoreBackend.Services
             return BCrypt.Net.BCrypt.Verify(password, passwordHash);
         }
 
-        private string GenerateJwtToken(User user)
+        private AuthTokenResponse CreateTokenPair(User user)
         {
             var claims = new[]
             {
@@ -82,14 +109,54 @@ namespace OnlineStoreBackend.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            var accessTokenExpiresAt = DateTime.UtcNow.AddMinutes(GetAccessTokenMinutes());
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(2),
+                expires: accessTokenExpiresAt,
                 signingCredentials: creds);
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var rawRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            _context.RefreshTokens.Add(new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = HashRefreshToken(rawRefreshToken),
+                ExpiresAt = DateTime.UtcNow.AddDays(GetRefreshTokenDays())
+            });
+
+            return new AuthTokenResponse
+            {
+                AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+                RefreshToken = rawRefreshToken,
+                AccessTokenExpiresAt = accessTokenExpiresAt
+            };
         }
+
+        private async Task<RefreshToken> FindActiveRefreshTokenAsync(string rawRefreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(rawRefreshToken))
+                throw new UnauthorizedAccessException("Refresh token is invalid.");
+
+            var token = await _context.RefreshTokens
+                .SingleOrDefaultAsync(item => item.TokenHash == HashRefreshToken(rawRefreshToken));
+
+            if (token == null || token.RevokedAt != null || token.ExpiresAt <= DateTime.UtcNow)
+                throw new UnauthorizedAccessException("Refresh token is invalid or expired.");
+
+            return token;
+        }
+
+        private static string HashRefreshToken(string rawRefreshToken)
+        {
+            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(rawRefreshToken));
+            return Convert.ToHexString(hash);
+        }
+
+        private int GetAccessTokenMinutes() =>
+            _configuration.GetValue("Jwt:AccessTokenMinutes", 15);
+
+        private int GetRefreshTokenDays() =>
+            _configuration.GetValue("Jwt:RefreshTokenDays", 7);
     }
 }

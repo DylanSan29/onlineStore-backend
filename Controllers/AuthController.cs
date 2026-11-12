@@ -23,13 +23,42 @@ namespace OnlineStoreBackend.Controllers
         {
             try
             {
-                var (token, user) = await _authService.Login(loginDto);
-                return Ok(new { token, username = user.Username, role = user.Role });
+                var result = await _authService.Login(loginDto);
+                return Ok(new
+                {
+                    token = result.Token,
+                    refreshToken = result.RefreshToken,
+                    accessTokenExpiresAt = result.AccessTokenExpiresAt,
+                    username = result.User.Username,
+                    role = result.User.Role
+                });
             }
             catch (UnauthorizedAccessException)
             {
                 return Unauthorized(new { message = "Invalid credentials" });
             }
+        }
+
+        [HttpPost("refresh")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
+        {
+            try
+            {
+                return Ok(await _authService.RefreshAsync(request.RefreshToken));
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Invalid or expired refresh token" });
+            }
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
+        {
+            await _authService.RevokeRefreshTokenAsync(request.RefreshToken);
+            return NoContent();
         }
 
 
