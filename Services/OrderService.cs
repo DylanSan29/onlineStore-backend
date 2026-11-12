@@ -5,7 +5,7 @@ using OnlineStoreBackend.Models;
 
 namespace OnlineStoreBackend.Services;
 
-public sealed class OrderService(OnlineStoreContext context, CouponService? couponService = null)
+public sealed class OrderService(OnlineStoreContext context, CouponService? couponService = null, NotificationService? notifications = null)
 {
     private static readonly string[] AllowedStatuses = ["Pending", "Paid", "Processing", "Shipped", "Delivered", "Cancelled", "Refunded"];
 
@@ -51,6 +51,11 @@ public sealed class OrderService(OnlineStoreContext context, CouponService? coup
             context.CouponUsages.Add(new CouponUsage { CouponId = coupon.Id, UserId = userId, OrderId = order.Id });
             await context.SaveChangesAsync();
         }
+        if (notifications is not null)
+            await notifications.CreateAsync(userId, new CreateNotificationRequest
+            {
+                Type = "Order", Title = "Order created", Message = $"Order #{order.Id} was created successfully."
+            });
         return ToResponse(order);
     }
 

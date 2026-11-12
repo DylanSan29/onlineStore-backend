@@ -15,3 +15,10 @@ public sealed class NotificationCountResponse
 {
     public int UnreadCount { get; init; }
 }
+
+public sealed class CreateNotificationRequest
+{
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(40)] public required string Type { get; set; }
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(160)] public required string Title { get; set; }
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(1000)] public required string Message { get; set; }
+}

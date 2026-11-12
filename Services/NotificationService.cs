@@ -1,11 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using OnlineStoreBackend.Data;
 using OnlineStoreBackend.DTOs;
+using OnlineStoreBackend.Models;
 
 namespace OnlineStoreBackend.Services;
 
 public sealed class NotificationService(OnlineStoreContext context)
 {
+    public async Task<NotificationResponse> CreateAsync(int userId, CreateNotificationRequest request)
+    {
+        var notification = new Notification
+        {
+            UserId = userId, Type = request.Type.Trim(), Title = request.Title.Trim(), Message = request.Message.Trim()
+        };
+        context.Notifications.Add(notification);
+        await context.SaveChangesAsync();
+        return ToResponse(notification);
+    }
+
     public async Task<IReadOnlyList<NotificationResponse>> GetAsync(int userId) =>
         await context.Notifications.AsNoTracking().Where(item => item.UserId == userId)
             .OrderByDescending(item => item.CreatedAt).Select(item => new NotificationResponse
@@ -37,4 +49,10 @@ public sealed class NotificationService(OnlineStoreContext context)
         }
         await context.SaveChangesAsync();
     }
+
+    private static NotificationResponse ToResponse(Notification item) => new()
+    {
+        Id = item.Id, Type = item.Type, Title = item.Title, Message = item.Message,
+        IsRead = item.IsRead, ReadAt = item.ReadAt, CreatedAt = item.CreatedAt
+    };
 }

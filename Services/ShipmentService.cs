@@ -5,7 +5,7 @@ using OnlineStoreBackend.Models;
 
 namespace OnlineStoreBackend.Services;
 
-public sealed class ShipmentService(OnlineStoreContext context)
+public sealed class ShipmentService(OnlineStoreContext context, NotificationService? notifications = null)
 {
     private static readonly string[] AllowedStatuses = ["Pending", "Packed", "Shipped", "InTransit", "OutForDelivery", "Delivered", "Returned"];
 
@@ -39,6 +39,14 @@ public sealed class ShipmentService(OnlineStoreContext context)
         if (request.Status.Equals("Delivered", StringComparison.OrdinalIgnoreCase) && shipment.DeliveredAt is null)
             shipment.DeliveredAt = DateTime.UtcNow;
         await context.SaveChangesAsync();
+        if (notifications is not null)
+        {
+            var order = await context.Orders.AsNoTracking().FirstAsync(item => item.Id == orderId);
+            await notifications.CreateAsync(order.UserId, new CreateNotificationRequest
+            {
+                Type = "Shipment", Title = "Shipment updated", Message = $"Order #{orderId} shipment status: {shipment.Status}."
+            });
+        }
         return ToResponse(shipment);
     }
 
