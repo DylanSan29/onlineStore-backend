@@ -1,0 +1,42 @@
+using Microsoft.EntityFrameworkCore;
+using OnlineStoreBackend.Data;
+using OnlineStoreBackend.DTOs;
+using OnlineStoreBackend.Models;
+
+namespace OnlineStoreBackend.Services;
+
+public sealed class ReviewService(OnlineStoreContext context)
+{
+    public async Task<IReadOnlyList<ReviewResponse>> GetApprovedAsync(int productId) =>
+        await context.Reviews.AsNoTracking()
+            .Where(review => review.ProductId == productId && review.IsApproved)
+            .OrderByDescending(review => review.CreatedAt)
+            .Select(review => new ReviewResponse
+            {
+                Id = review.Id, ProductId = review.ProductId, UserId = review.UserId,
+                Rating = review.Rating, Comment = review.Comment, CreatedAt = review.CreatedAt
+            })
+            .ToListAsync();
+
+    public async Task<ReviewResponse> CreateAsync(int userId, int productId, ReviewRequest request)
+    {
+        var productExists = await context.Products.AnyAsync(product => product.Id == productId && product.IsActive);
+        if (!productExists) throw new KeyNotFoundException("Product not found.");
+        var purchased = await context.OrderItems.AnyAsync(item => item.ProductId == productId &&
+            context.Orders.Any(order => order.Id == item.OrderId && order.UserId == userId && order.Status != "Cancelled"));
+        if (!purchased) throw new InvalidOperationException("You can review only products you purchased.");
+        if (await context.Reviews.AnyAsync(review => review.ProductId == productId && review.UserId == userId))
+            throw new InvalidOperationException("You already reviewed this product.");
+
+        var review = new Review { ProductId = productId, UserId = userId, Rating = request.Rating, Comment = request.Comment?.Trim() };
+        context.Reviews.Add(review);
+        await context.SaveChangesAsync();
+        return ToResponse(review);
+    }
+
+    private static ReviewResponse ToResponse(Review review) => new()
+    {
+        Id = review.Id, ProductId = review.ProductId, UserId = review.UserId,
+        Rating = review.Rating, Comment = review.Comment, CreatedAt = review.CreatedAt
+    };
+}
