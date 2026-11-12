@@ -107,6 +107,7 @@ builder.Services.AddScoped<ShipmentService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<EmailVerificationService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<AuditLogService>();
 
 // Register the database context
 builder.Services.AddDbContext<OnlineStoreContext>(options =>
