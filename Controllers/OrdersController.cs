@@ -47,7 +47,7 @@ public sealed class OrdersController(OrderService orders) : ControllerBase
 [ApiController]
 [Authorize(Roles = "admin")]
 [Route("api/admin/orders")]
-public sealed class AdminOrdersController(OrderService orders) : ControllerBase
+public sealed class AdminOrdersController(OrderService orders, ShipmentService shipments) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll() => Ok(await orders.GetAllAsync());
@@ -56,6 +56,17 @@ public sealed class AdminOrdersController(OrderService orders) : ControllerBase
     public async Task<IActionResult> UpdateStatus(int id, UpdateOrderStatusRequest request)
     {
         try { return await orders.UpdateStatusAsync(id, request.Status) ? NoContent() : NotFound(); }
+        catch (InvalidOperationException exception) { return BadRequest(new { message = exception.Message }); }
+    }
+
+    [HttpPut("{id:int}/shipment")]
+    public async Task<IActionResult> UpdateShipment(int id, ShipmentUpdateRequest request)
+    {
+        try
+        {
+            var shipment = await shipments.UpdateAsync(id, request);
+            return shipment is null ? NotFound() : Ok(shipment);
+        }
         catch (InvalidOperationException exception) { return BadRequest(new { message = exception.Message }); }
     }
 }
