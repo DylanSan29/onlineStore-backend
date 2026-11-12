@@ -26,7 +26,7 @@ namespace OnlineStoreBackend.Services
         public async Task<(string Token, string RefreshToken, User User, DateTime AccessTokenExpiresAt)> Login(LoginDto loginDto)
         {
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == loginDto.Username);
+                .FirstOrDefaultAsync(u => u.Username == loginDto.Username && u.IsActive);
 
             if (user == null || !VerifyPassword(loginDto.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid username or password");
