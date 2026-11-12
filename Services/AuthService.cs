@@ -81,6 +81,37 @@ namespace OnlineStoreBackend.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task<PasswordResetResult> RequestPasswordResetAsync(string username)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(item => item.Username == username);
+            if (user is null) return new PasswordResetResult { UserFound = false };
+
+            var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+            _context.PasswordResetTokens.Add(new PasswordResetToken
+            {
+                UserId = user.Id, TokenHash = HashRefreshToken(rawToken), ExpiresAt = DateTime.UtcNow.AddHours(1)
+            });
+            await _context.SaveChangesAsync();
+            return new PasswordResetResult { UserFound = true, Token = rawToken };
+        }
+
+        public async Task<bool> ResetPasswordAsync(string rawToken, string newPassword)
+        {
+            var token = await _context.PasswordResetTokens
+                .SingleOrDefaultAsync(item => item.TokenHash == HashRefreshToken(rawToken));
+            if (token is null || token.UsedAt != null || token.ExpiresAt <= DateTime.UtcNow) return false;
+
+            var user = await _context.Users.FindAsync(token.UserId);
+            if (user is null) return false;
+            user.PasswordHash = HashPassword(newPassword);
+            token.UsedAt = DateTime.UtcNow;
+            var otherTokens = await _context.PasswordResetTokens
+                .Where(item => item.UserId == user.Id && item.UsedAt == null && item.Id != token.Id).ToListAsync();
+            foreach (var otherToken in otherTokens) otherToken.UsedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         private string HashPassword(string password)
         {
             return BCrypt.Net.BCrypt.HashPassword(password);

@@ -81,6 +81,24 @@ namespace OnlineStoreBackend.Controllers
             }
         }
 
+        [HttpPost("password-reset/request")]
+        [AllowAnonymous]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> RequestPasswordReset(PasswordResetRequest request)
+        {
+            await _authService.RequestPasswordResetAsync(request.Username);
+            return Ok(new { message = "If the account exists, password reset instructions will be sent." });
+        }
+
+        [HttpPost("password-reset/confirm")]
+        [AllowAnonymous]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> ConfirmPasswordReset(PasswordResetConfirmRequest request)
+        {
+            var reset = await _authService.ResetPasswordAsync(request.Token, request.NewPassword);
+            return reset ? NoContent() : BadRequest(new { message = "Invalid or expired password reset token." });
+        }
+
         [HttpGet("me")]
         [Authorize]
         public IActionResult Me() => Ok(new
